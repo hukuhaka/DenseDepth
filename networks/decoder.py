@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class Upsample(nn.Module):
-    def __init__(self, in_channels, out_channels, scale_factor=2, mode="bilinear", align_corners=True):
+    def __init__(self, in_channels, out_channels):
         super(Upsample, self).__init__()
 
         self.upsample = nn.Sequential(

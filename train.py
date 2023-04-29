@@ -8,7 +8,7 @@ from tqdm import tqdm
 import torch
 from torch import optim, nn
 
-from clearml import Task
+from clearml import Task, Logger
 
 from utils import *
 from dataloader import DepthDataLoader
@@ -19,6 +19,8 @@ warnings.filterwarnings('ignore')
 class DenseDepthTrainer:
     def __init__(self, args):
         self.args = args
+        
+        self.task = Task.init(project_name="Densedepth", task_name="Densedepth Training")
         
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -75,8 +77,11 @@ class DenseDepthTrainer:
                     
                     loss_tracking.update(loss.item())
                     
+                    Logger.current_logger().report_scalar(title="train", series="loss", iteration=idx+epoch*len(self.TrainLoader), value=loss.item())
+                    Logger.current_logger().report_scalar(title="train", series="max depth", iteration=idx+epoch*len(self.TrainLoader), value=pred.max())
                     trainloader.set_postfix(loss=loss_tracking.data, loss_avg=loss_tracking.avg)
-            
+                    
+            Logger.current_logger().report_scalar(title="train", series="avg loss", iteration=epoch, value=loss_tracking.avg)
             self.model.eval()
             
             with torch.no_grad():
@@ -98,6 +103,8 @@ class DenseDepthTrainer:
                     rmse_tracking.update(test_error["rmse"])
             
             print(f"Train Loss: {loss_tracking.avg}, Test a1: {a1_tracking.avg}, Test rmse: {rmse_tracking.avg}\n")
+            Logger.current_logger().report_scalar(title="test", series="a1", iteration=epoch, value=a1_tracking.avg)
+            Logger.current_logger().report_scalar(title="test", series="rmse", iteration=epoch, value=rmse_tracking.avg)
             
             model_name = str(epoch).zfill(3)+"-"+self.args.encoder_model+"-"+str(loss_tracking.avg)+".pt"
             save_checkpoint(model=self.model, optimizer=self.optimizer,
