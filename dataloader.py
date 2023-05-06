@@ -33,13 +33,13 @@ class DepthDataLoader(object):
                 args.image_path, args.depth_path, args.train_file, args.dataset_type)])
 
             self.data = DataLoader(self.training_samples, batch_size=args.batch_size,
-                                   shuffle=True, num_workers=args.batch_size*2,
+                                   shuffle=True, num_workers=24,
                                    pin_memory=True, drop_last=True)
 
         elif mode == 'online_eval':
             self.testing_samples = DataLoadPreprocess(args, mode, base_data)
 
-            self.data = DataLoader(self.testing_samples, batch_size=1,
+            self.data = DataLoader(self.testing_samples, batch_size=2,
                                    shuffle=False, num_workers=2, pin_memory=False)
 
         elif mode == 'validation':

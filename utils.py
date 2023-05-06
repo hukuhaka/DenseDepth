@@ -9,7 +9,7 @@ from networks.model import DenseDepth
 
 def model_setting(args, device):
     
-    model = DenseDepth(args).to(device)
+    model = DenseDepth(args.encoder_model).to(device)
     # model = torch.compile(model)
     
     loss = SILogLoss()

@@ -8,11 +8,18 @@ class Upsample(nn.Module):
         super(Upsample, self).__init__()
 
         self.upsample = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.GELU(),
             nn.Conv2d(in_channels, out_channels, kernel_size=3,
                       stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(out_channels),
             nn.GELU(),
-            nn.Conv2d(out_channels, out_channels, kernel_size=3,
-                      stride=1, padding=1, bias=False),
+            nn.Conv2d(out_channels, out_channels, kernel_size=1, stride=1, padding=0, bias=False),
+            nn.GELU(),
+        )
+        
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=False),
             nn.GELU(),
         )
 
@@ -24,15 +31,15 @@ class Upsample(nn.Module):
             x, size=[concat_height, concat_width], mode="bilinear", align_corners=True)
         x = torch.cat([x, concat_data], dim=1)
 
-        x = self.upsample(x)
+        x = self.upsample(x) + self.conv(x)
 
         return x
 
 class Decoder(nn.Module):
-    def __init__(self, args):
+    def __init__(self, encoder_model):
         super(Decoder, self).__init__()
 
-        self.model_name = args.encoder_model
+        self.model_name = encoder_model
         
         if self.model_name  == "densenet":
             num_features = 1664
@@ -56,6 +63,7 @@ class Decoder(nn.Module):
         self.upsample5 = Upsample(num_features // 16 + channels[4], num_features // 32)
         
         self.conv3 = nn.Conv2d(num_features // 32, 1, kernel_size=3, stride=1, padding=1)
+        self.relu = nn.ReLU()
     
     def forward(self, feature_map):
         
@@ -94,6 +102,6 @@ class Decoder(nn.Module):
         x = self.upsample3(x, x2)
         x = self.upsample4(x, x1)
         x = self.upsample5(x, x0)
-        x = self.conv3(x)
+        x = self.relu(self.conv3(x)) + 1e-06
         
         return x
