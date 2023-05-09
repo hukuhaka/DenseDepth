@@ -2,24 +2,25 @@ import os
 
 import numpy as np
 import torch
-from torch import optim, nn
+from torch import optim
 
 from loss import SILogLoss
 from networks.model import DenseDepth
 
+
 def model_setting(args, device):
-    
+
     model = DenseDepth(args.encoder_model).to(device)
-    # model = torch.compile(model)
-    
+
     loss = SILogLoss()
-    
+
     if args.optimizer == "adam":
         optimizer = optim.Adam(model.parameters(), lr=args.lr)
     elif args.optimizer == "adamw":
         optimizer = optim.AdamW(model.parameters(), lr=args.lr)
-        
+
     return model, loss, optimizer
+
 
 class Recording:
     def __init__(self):
@@ -28,7 +29,7 @@ class Recording:
         self.sum = 0
         self.count = 0
         self.list = []
-    
+
     def update(self, data, n=1):
         self.data = data
         self.list.append(data)
@@ -38,10 +39,10 @@ class Recording:
 
 
 def compute_errors(gt, pred):
-    
+
     gt = gt.cpu().numpy()
     pred = pred.cpu().numpy()
-    
+
     thresh = np.maximum((gt / pred), (pred / gt))
     a1 = (thresh < 1.25).mean()
     a2 = (thresh < 1.25 ** 2).mean()
@@ -63,6 +64,7 @@ def compute_errors(gt, pred):
     return dict(a1=a1, a2=a2, a3=a3, abs_rel=abs_rel, rmse=rmse, log_10=log_10, rmse_log=rmse_log,
                 silog=silog, sq_rel=sq_rel)
 
+
 def save_checkpoint(model, optimizer, epoch, filename, root="./checkpoints"):
     if not os.path.isdir(root):
         os.makedirs(root)
@@ -73,5 +75,4 @@ def save_checkpoint(model, optimizer, epoch, filename, root="./checkpoints"):
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict(),
             "epoch": epoch
-        }
-        , fpath)
+        }, fpath)

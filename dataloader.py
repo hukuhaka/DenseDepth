@@ -6,7 +6,6 @@ import numpy as np
 import albumentations as A
 
 import torch
-from torch import nn
 from torch.utils.data import Dataset, DataLoader, ConcatDataset
 from torchvision import transforms
 
@@ -43,7 +42,8 @@ class DepthDataLoader(object):
                                    shuffle=False, num_workers=2, pin_memory=False)
 
         elif mode == 'validation':
-            self.testing_samples = DataLoadPreprocess(args, "online_eval", base_data)
+            self.testing_samples = DataLoadPreprocess(
+                args, "online_eval", base_data)
 
             self.data = DataLoader(self.testing_samples, batch_size=8,
                                    shuffle=False, num_workers=8, pin_memory=True)
@@ -67,27 +67,29 @@ class DataLoadPreprocess(Dataset):
             self.image_path, self.depth_path, list_file, self.dataset_type = dataset_profile.test_image_path, dataset_profile.test_depth_path, dataset_profile.test_file, base_data
         with open(list_file, 'r') as f:
             self.filenames = f.readlines()
-            
+
         self.transform = transforms.Compose([ToTensor(mode=self.dataset_type)])
         self.mode = mode
         self.base_data = base_data
-        
+
         if self.base_data == "diode":
             self.height = 480
             self.width = 640
         elif self.base_data == "kitti":
             self.height = 352
             self.width = 704
-        
+
         self.A_train_transform = A.Compose([
             A.ChannelShuffle(p=1.0),
             A.Resize(height=self.height*2, width=self.width*2),
             A.HorizontalFlip(p=0.5),
-            A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1, p=0.5),
+            A.RandomBrightnessContrast(
+                brightness_limit=0.1, contrast_limit=0.1, p=0.5),
             A.ShiftScaleRotate(rotate_limit=20),
-            A.RandomResizedCrop(height=self.height, width=self.width, scale=(0.95, 1), ratio=(0.8, 1.25)),
+            A.RandomResizedCrop(height=self.height, width=self.width, scale=(
+                0.95, 1), ratio=(0.8, 1.25)),
         ])
-        
+
         self.A_test_transform = A.Compose([
             A.Resize(height=self.height, width=self.width)
         ])
@@ -114,7 +116,7 @@ class DataLoadPreprocess(Dataset):
             sample = self.A_train_transform(image=image, mask=depth_gt)
         else:
             sample = self.A_test_transform(image=image, mask=depth_gt)
-            
+
         sample = {'image': sample["image"], 'depth': sample["mask"]}
 
         if self.transform:
@@ -133,12 +135,14 @@ class DataLoadPreprocess(Dataset):
         # assert img.shape[1] == depth.shape[1]
         if img.shape[1] - width > 0:
             x = random.randint(0, img.shape[1] - width)
-        else: x = 0
-        
+        else:
+            x = 0
+
         if img.shape[0] - height > 0:
             y = random.randint(0, img.shape[0] - height)
-        else: y = 0
-        
+        else:
+            y = 0
+
         # x = random.randint(0, img.shape[1] - width)
         # y = random.randint(0, img.shape[0] - height)
         img = img[y:y + height, x:x + width, :]
